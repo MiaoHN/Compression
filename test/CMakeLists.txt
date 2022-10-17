@@ -10,9 +10,13 @@ add_executable(test_token test_token.cpp)
 target_link_libraries(test_token PUBLIC compression)
 add_test(NAME test_token COMMAND test_token)
 
-add_executable(test_huffman test_huffman.cpp)
-target_link_libraries(test_huffman PUBLIC compression)
-add_test(NAME test_huffman COMMAND test_huffman)
+add_executable(test_encode test_encode.cpp)
+target_link_libraries(test_encode PUBLIC compression)
+add_test(NAME test_encode COMMAND test_encode)
+
+add_executable(test_decode test_decode.cpp)
+target_link_libraries(test_decode PUBLIC compression)
+add_test(NAME test_decode COMMAND test_decode)
 
 add_custom_target(DownloadTestFiles
   COMMAND echo "Download test files..."
@@ -20,4 +24,4 @@ add_custom_target(DownloadTestFiles
   WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH}
 )
 
-add_dependencies(test_huffman DownloadTestFiles)
+add_dependencies(test_encode DownloadTestFiles)

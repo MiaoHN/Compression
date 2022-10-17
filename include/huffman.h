@@ -37,6 +37,9 @@ ByteArray BindFileHeaderWithDecode(const ByteArray& file_header,
 
 bool OutputToFile(const std::string& output_path, const ByteArray& bytes);
 
+bool SeparateFileHeader(const std::vector<char>& source, ByteArray& file_header,
+                        ByteArray& bytes);
+
 }  // namespace huffman
 
 #endif  // __HUFFMAN_H__

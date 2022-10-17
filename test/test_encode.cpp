@@ -22,6 +22,8 @@ int main(int argc, char const* argv[]) {
   bool status = huffman::OutputToFile(input_path + ".huffman", final_bytes);
 
   std::cout << "map size: " << map.size() << std::endl;
+  std::cout << "header length:   " << file_header.GetLength() / 8.0 << "bytes"
+            << std::endl;
   std::cout << "raw text length: " << source.size() << " bytes" << std::endl;
   std::cout << "decoded length:  " << decode.GetLength() / 8.0 << "bytes"
             << std::endl;

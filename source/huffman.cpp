@@ -107,4 +107,15 @@ bool OutputToFile(const std::string& output_path, const ByteArray& bytes) {
   return true;
 }
 
+bool SeparateFileHeader(const std::vector<char>& source, ByteArray& file_header,
+                        ByteArray& bytes) {
+  int map_length = *(int*)&source[3];
+  std::cout << map_length << std::endl;
+
+  // TODO File header
+
+
+  return false;
+}
+
 }  // namespace huffman
