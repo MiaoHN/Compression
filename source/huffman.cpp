@@ -68,4 +68,17 @@ ByteArray GetDecodeBytes(const std::vector<Token>& tokens,
   return result;
 }
 
+ByteArray GenerateFileHeader(std::map<Token, ByteArray>& map) {
+  ByteArray bytes;
+  
+
+  return bytes;
+}
+
+bool OutputToFile(const std::string& output_path, const ByteArray& file_header,
+                  const ByteArray& decoded) {
+  //
+  return false;
+}
+
 }  // namespace huffman
