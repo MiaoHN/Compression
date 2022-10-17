@@ -38,4 +38,34 @@ TreeNode* CreateTree(const std::vector<Token>& tokens) {
   return nodes[0];
 }
 
+void Dfs(std::map<Token, ByteArray>& map, ByteArray routine, TreeNode* node) {
+  if (node->IsLeaf()) {
+    map[node->token] = routine;
+    return;
+  }
+  ByteArray left_routine = routine;
+  ByteArray right_routine = routine;
+  left_routine.PushBit(0);
+  right_routine.PushBit(1);
+  if (node->left) Dfs(map, left_routine, node->left);
+  if (node->right) Dfs(map, right_routine, node->right);
+}
+
+std::map<Token, ByteArray> GenerateMap(TreeNode* root) {
+  std::map<Token, ByteArray> result;
+  Dfs(result, ByteArray(), root);
+  return result;
+}
+
+ByteArray GetDecodeBytes(const std::vector<Token>& tokens,
+                         std::map<Token, ByteArray>& map) {
+  ByteArray result;
+
+  for (const auto& token : tokens) {
+    result += map[token];
+  }
+
+  return result;
+}
+
 }  // namespace huffman

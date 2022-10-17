@@ -23,7 +23,10 @@ struct TreeNode {
 
 TreeNode* CreateTree(const std::vector<Token>& tokens);
 
-std::map<std::string, ByteArray> GenerateMap(TreeNode* root);
+std::map<Token, ByteArray> GenerateMap(TreeNode* root);
+
+ByteArray GetDecodeBytes(const std::vector<Token>& tokens,
+                         std::map<Token, ByteArray>& map);
 
 }  // namespace huffman
 

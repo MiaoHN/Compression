@@ -24,5 +24,17 @@ int main(int argc, char const *argv[]) {
   assert(bytes.GetBit(2) == 1);
   assert(bytes.GetBit(3) == 0);
 
+  ByteArray b1;
+  ByteArray b2;
+
+  b1.PushBit(1);
+  b1.PushBit(0);
+  b2.PushBit(0);
+  b2.PushBit(1);
+
+  ByteArray add = b1 + b2;
+  std::cout << b1.ToString() << " + " << b2.ToString() << " = "
+            << add.ToString() << std::endl;
+
   return 0;
 }

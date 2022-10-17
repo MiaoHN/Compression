@@ -13,3 +13,11 @@ add_test(NAME test_token COMMAND test_token)
 add_executable(test_huffman test_huffman.cpp)
 target_link_libraries(test_huffman PUBLIC compression)
 add_test(NAME test_huffman COMMAND test_huffman)
+
+add_custom_target(DownloadTestFiles
+  COMMAND echo "Download test files..."
+  COMMAND python3 ${PROJECT_SOURCE_DIR}/scripts/generate_data.py 
+  WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH}
+)
+
+add_dependencies(test_huffman DownloadTestFiles)

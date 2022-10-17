@@ -21,11 +21,29 @@ class ByteArray {
     offset_ = (offset_ + 1) % 8;
   }
 
-  bool GetBit(int position) {
+  bool GetBit(int position) const {
     int cursor = position / 8;
     int offset = position % 8;
     return !!(data_[cursor] & (0x01 << (7 - offset)));
   }
+
+  void operator+=(const ByteArray& rhs) {
+    for (int i = 0; i < rhs.GetLength(); ++i) {
+      PushBit(rhs.GetBit(i));
+    }
+  }
+
+  ByteArray operator+(const ByteArray& rhs) {
+    ByteArray bytes(*this);
+
+    for (int i = 0; i < rhs.GetLength(); ++i) {
+      bytes.PushBit(rhs.GetBit(i));
+    }
+
+    return bytes;
+  }
+
+  int GetLength() const { return (capacity_ - 1) * 8 + offset_; }
 
   std::string ToString() {
     std::string str;

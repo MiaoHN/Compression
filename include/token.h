@@ -13,6 +13,7 @@ class Token {
   static std::vector<Token> Tokenrise(const std::string& source);
 
   bool operator<(const Token& t) const { return ToString() < t.ToString(); }
+  bool operator==(const Token& t) const { return ToString() == t.ToString(); }
 
   enum Type : uint8_t {
     Length8 = 0,   // 0xxxxxxx
