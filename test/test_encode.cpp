@@ -28,12 +28,13 @@ int main(int argc, char const* argv[]) {
   std::cout << "decoded length:  " << decode.GetLength() / 8.0 << "bytes"
             << std::endl;
 
-  std::cout << "percent: " << (float)decode.GetLength() / (source.size() * 8)
-            << "%" << std::endl;
+  std::cout << "percent: "
+            << (float)decode.GetLength() / (source.size() * 8) * 100.0 << "%"
+            << std::endl;
 
   std::cout << "percent(with header): "
-            << (float)final_bytes.GetLength() / (source.size() * 8) << "%"
-            << std::endl;
+            << (float)final_bytes.GetLength() / (source.size() * 8) * 100.0
+            << "%" << std::endl;
 
   return 0;
 }
