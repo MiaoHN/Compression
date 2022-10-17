@@ -21,22 +21,21 @@ struct TreeNode {
   bool IsLeaf() { return left == nullptr && right == nullptr; }
 };
 
-struct FileHeader {
-  std::map<Token, ByteArray> map;
-  int length;
-};
+std::map<Token, int> GetConsequence(const std::vector<Token>& tokens);
 
-TreeNode* CreateTree(const std::vector<Token>& tokens);
+TreeNode* CreateTree(std::map<Token, int>& counts);
 
 std::map<Token, ByteArray> GenerateMap(TreeNode* root);
 
 ByteArray GetDecodeBytes(const std::vector<Token>& tokens,
                          std::map<Token, ByteArray>& map);
 
-ByteArray GenerateFileHeader(std::map<Token, ByteArray>& map);
+ByteArray GenerateFileHeader(std::map<Token, int>& map);
 
-bool OutputToFile(const std::string& output_path, const ByteArray& file_header,
-                  const ByteArray& decoded);
+ByteArray BindFileHeaderWithDecode(const ByteArray& file_header,
+                                   const ByteArray& decoded);
+
+bool OutputToFile(const std::string& output_path, const ByteArray& bytes);
 
 }  // namespace huffman
 

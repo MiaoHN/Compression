@@ -1,18 +1,21 @@
 #include "huffman.h"
 
 #include <algorithm>
+#include <fstream>
 #include <map>
 
 namespace huffman {
 
-TreeNode* CreateTree(const std::vector<Token>& tokens) {
-  // 1. Get Consequence of each Token
+std::map<Token, int> GetConsequence(const std::vector<Token>& tokens) {
   std::map<Token, int> counts;
   for (auto& token : tokens) {
     if (counts.find(token) == counts.end()) counts[token] = 0;
     ++counts[token];
   }
+  return counts;
+}
 
+TreeNode* CreateTree(std::map<Token, int>& counts) {
   std::vector<TreeNode*> nodes;
   for (auto& item : counts) {
     nodes.emplace_back(new TreeNode(item.first, item.second));
@@ -20,7 +23,6 @@ TreeNode* CreateTree(const std::vector<Token>& tokens) {
   sort(nodes.begin(), nodes.end(),
        [](TreeNode* a, TreeNode* b) { return a->freq > b->freq; });
 
-  // 2. Generate tree
   while (nodes.size() > 1) {
     TreeNode* last1 = nodes.back();
     nodes.pop_back();
@@ -68,17 +70,41 @@ ByteArray GetDecodeBytes(const std::vector<Token>& tokens,
   return result;
 }
 
-ByteArray GenerateFileHeader(std::map<Token, ByteArray>& map) {
+ByteArray GenerateFileHeader(std::map<Token, int>& map) {
   ByteArray bytes;
-  
+
+  bytes.PushInt(map.size());
+
+  for (auto& item : map) {
+    bytes.PushString(item.first.ToString());
+    bytes.PushInt(item.second);
+  }
 
   return bytes;
 }
 
-bool OutputToFile(const std::string& output_path, const ByteArray& file_header,
-                  const ByteArray& decoded) {
-  //
-  return false;
+ByteArray BindFileHeaderWithDecode(const ByteArray& file_header,
+                                   const ByteArray& decoded) {
+  ByteArray bytes;
+  bytes += file_header;
+  bytes.PushInt(decoded.GetOffset());
+  bytes += decoded;
+  return bytes;
+}
+
+bool OutputToFile(const std::string& output_path, const ByteArray& bytes) {
+  std::ofstream f(output_path);
+  if (f.fail()) {
+    std::cout << "OutputToFile: Error opening file '" << output_path << "'!!!"
+              << std::endl;
+    return false;
+  }
+
+  f.write(bytes.GetData().data(), bytes.GetData().size());
+
+  f.close();
+
+  return true;
 }
 
 }  // namespace huffman

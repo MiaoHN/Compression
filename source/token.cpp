@@ -7,6 +7,7 @@
 #define TEST_BIT(c, offset) !!(c & (0x01 << offset))
 
 Token::Token(const char* ch) {
+#if 1
   if (TEST_BIT(ch[0], 7) == 0) {
     type = Type::Length8;
     value.push_back(ch[0]);
@@ -76,6 +77,7 @@ Token::Token(const char* ch) {
     value.push_back(ch[5]);
     return;
   }
+#endif
   type = Type::Length8;
   value.push_back(ch[0]);
 }
