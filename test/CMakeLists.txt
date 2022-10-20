@@ -18,10 +18,14 @@ add_executable(test_decode test_decode.cpp)
 target_link_libraries(test_decode PUBLIC huffmanlib)
 add_test(NAME test_decode COMMAND test_decode)
 
-# add_custom_target(DownloadTestFiles
-#   COMMAND echo "Download test files..."
-#   COMMAND python3 ${PROJECT_SOURCE_DIR}/scripts/generate_data.py 
-#   WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH}
-# )
+add_executable(test_bitarray test_bitarray.cpp)
+target_link_libraries(test_bitarray PUBLIC lzwlib)
+add_test(NAME test_bitarray COMMAND test_bitarray)
 
-# add_dependencies(test_encode DownloadTestFiles)
+add_executable(test_compress test_compress.cpp)
+target_link_libraries(test_compress PUBLIC lzwlib)
+add_test(NAME test_compress COMMAND test_compress)
+
+add_executable(test_decompress test_decompress.cpp)
+target_link_libraries(test_decompress PUBLIC lzwlib)
+add_test(NAME test_decompress COMMAND test_decompress)
