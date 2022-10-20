@@ -114,8 +114,47 @@ bool SeparateFileHeader(const std::vector<char>& source, ByteArray& file_header,
 
   // TODO File header
 
-
   return false;
+}
+
+void compress(const std::string& file_name, const std::string& output_file) {
+  std::string input_path = file_name;
+  std::string source = GetStringFromFile(input_path);
+
+  auto tokens = Token::Tokenrise(source);
+  auto counts = huffman::GetConsequence(tokens);
+  auto tree = huffman::CreateTree(counts);
+  auto map = huffman::GenerateMap(tree);
+  auto decode = huffman::GetDecodeBytes(tokens, map);
+  auto file_header = huffman::GenerateFileHeader(counts);
+  ByteArray final_bytes =
+      huffman::BindFileHeaderWithDecode(file_header, decode);
+  bool status = huffman::OutputToFile(output_file, final_bytes);
+
+  std::cout << "map size: " << map.size() << std::endl;
+  std::cout << "header length:   " << file_header.GetLength() / 8.0 << "bytes"
+            << std::endl;
+  std::cout << "raw text length: " << source.size() << " bytes" << std::endl;
+  std::cout << "decoded length:  " << decode.GetLength() / 8.0 << "bytes"
+            << std::endl;
+
+  std::cout << "percent: "
+            << (float)decode.GetLength() / (source.size() * 8) * 100.0 << "%"
+            << std::endl;
+
+  std::cout << "percent(with header): "
+            << (float)final_bytes.GetLength() / (source.size() * 8) * 100.0
+            << "%" << std::endl;
+}
+
+void decompress(const std::string& file_name, const std::string& output_file) {
+  std::string input_path = file_name;
+  std::vector<char> source = GetRawFromFile(input_path);
+
+  ByteArray file_header;
+  ByteArray bytes;
+
+  huffman::SeparateFileHeader(source, file_header, bytes);
 }
 
 }  // namespace huffman

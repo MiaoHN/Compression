@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "byte_array.h"
+#include "huffman/byte_array.h"
 
 int main(int argc, char const *argv[]) {
   ByteArray bytes;

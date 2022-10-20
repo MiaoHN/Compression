@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "token.h"
+#include "huffman/token.h"
 
 int main(int argc, char const* argv[]) {
   std::string str = "西安交通大学 - Xi'an JiaoTong University";

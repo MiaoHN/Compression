@@ -1,7 +1,7 @@
 #include <cstring>
 
-#include "file.h"
-#include "huffman.h"
+#include "huffman/file.h"
+#include "huffman/huffman.h"
 
 int main(int argc, char const* argv[]) {
   std::string source = "test";

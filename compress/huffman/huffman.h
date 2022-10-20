@@ -4,6 +4,7 @@
 #include <map>
 
 #include "byte_array.h"
+#include "file.h"
 #include "token.h"
 
 namespace huffman {
@@ -39,6 +40,10 @@ bool OutputToFile(const std::string& output_path, const ByteArray& bytes);
 
 bool SeparateFileHeader(const std::vector<char>& source, ByteArray& file_header,
                         ByteArray& bytes);
+
+void compress(const std::string& file_name, const std::string& output_file);
+
+void decompress(const std::string& file_name, const std::string& output_file);
 
 }  // namespace huffman
 
