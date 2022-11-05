@@ -9,30 +9,81 @@
 
 namespace lzw {
 
-namespace detail {
-
-class Lzw {
+class Compressor {
  public:
-  Lzw(int part_len = 8, int code_len = 12);
-
-  std::vector<char> compress(const std::vector<char>& bytes);
-
-  std::vector<char> decompress(const std::vector<char>& bytes);
+  virtual std::vector<char> compress(const std::vector<char>& bytes) = 0;
 
  private:
-  int part_len_;      // 分段长度
-  int max_code_len_;  // 编码长度，同时为字典最大值
-
-  int dict_size_;  //初始字典大小
-  int sig_clear_;  // clear 符号
 };
 
-}  // namespace detail
+class Decompressor {
+ public:
+  virtual std::vector<char> decompress(const std::vector<char>& bytes) = 0;
+};
 
-void compress(const std::string& file_name, const std::string& output_name,
-              int part_len = 8, int code_len = 12);
+class BasicCompressor : public Compressor {
+ public:
+  std::vector<char> compress(const std::vector<char>& bytes) override;
+};
 
-void decompress(const std::string& file_name);
+class BasicDecompressor : public Decompressor {
+ public:
+  std::vector<char> decompress(const std::vector<char>& bytes) override;
+};
+
+class VariableLengthCompressor : public Compressor {
+ public:
+  VariableLengthCompressor(int codeLength = 12);
+
+  std::vector<char> compress(const std::vector<char>& bytes) override;
+
+ private:
+  int maxCodeLength_;
+  int sigClear_;
+};
+
+class VariableLengthDecompressor : public Decompressor {
+ public:
+  VariableLengthDecompressor(int codeLength = 12);
+
+  std::vector<char> decompress(const std::vector<char>& bytes) override;
+
+ private:
+  int maxCodeLength_;
+  int sigClear_;
+};
+
+class SafeVariableLengthCompressor : public Compressor {
+ public:
+  SafeVariableLengthCompressor(int salt = 0, int codeLength = 12);
+
+  std::vector<char> compress(const std::vector<char>& bytes) override;
+
+ private:
+  int salt_;
+
+  int maxCodeLength_;
+  int sigClear_;
+};
+
+class SafeVariableLengthDecompressor : public Decompressor {
+ public:
+  SafeVariableLengthDecompressor(int salt = 0, int codeLength = 12);
+
+  std::vector<char> decompress(const std::vector<char>& bytes) override;
+
+ private:
+  int salt_;
+
+  int maxCodeLength_;
+  int sigClear_;
+};
+
+void compress(Compressor* compressor, const std::string& fileName,
+              const std::string& outputName = "");
+
+void decompress(Decompressor* decompressor, const std::string& fileName,
+                const std::string& outputName = "");
 
 }  // namespace lzw
 

@@ -4,136 +4,336 @@
 #include <fstream>
 #include <iostream>
 
+#include "random_generator.h"
+
 namespace lzw {
 
-namespace detail {
-
-Lzw::Lzw(int part_len, int code_len)
-    : part_len_(part_len),
-      max_code_len_(code_len),
-      dict_size_(1 << part_len_),
-      sig_clear_((1 << max_code_len_) - 1) {}
-
-std::vector<char> Lzw::compress(const std::vector<char>& bytes) {
-  BitArray input_stream(bytes);
+std::vector<char> BasicCompressor::compress(const std::vector<char>& bytes) {
   BitArray result;
-  // 将压缩的参数保存到前两个 char 中
-  result.pushChar(static_cast<char>(part_len_));
-  result.pushChar(static_cast<char>(max_code_len_));
 
-  std::map<BitArray, int> dict;
-  for (int i = 0; i < dict_size_; i++) {
-    dict[BitArray(i, part_len_)] = i;
+  std::map<std::string, int> dict;
+  for (int i = 0; i < (1 << 8); i++) {
+    dict[std::string(1, i)] = dict.size();
   }
 
-  int code_len = part_len_ + 1;
-  int code_index = dict.size();
+  std::string p;
 
-  BitArray p;
-
-  while (input_stream.bitsToRead() >= part_len_) {
-    BitArray c = input_stream.popFront(part_len_);
+  for (int i = 0; i < bytes.size(); ++i) {
+    std::string c;
+    c += bytes[i];
     if (dict.find(p + c) != dict.end()) {
       p += c;
     } else {
       int code = dict[p];
-      while (code >= (1 << code_len) - 1 && code_len <= max_code_len_) {
-        result.pushInt((1 << code_len) - 1, code_len);
-        code_len++;
-      }
-      result.pushInt(code, code_len);
-      dict[p + c] = code_index++;
-      if (code_index >= sig_clear_) {
+      result.pushInt(code, 12);
+      dict[p + c] = dict.size();
+      if (dict.size() >= 4095) {
         dict.clear();
-        for (int i = 0; i < dict_size_; i++) {
-          dict[BitArray(i, part_len_)] = i;
+        for (int i = 0; i < (1 << 8); i++) {
+          dict[std::string(1, i)] = dict.size();
         }
-        result.pushInt(sig_clear_, max_code_len_);
-
-        code_len = part_len_ + 1;
-        code_index = dict_size_;
+        result.pushInt(4095, 12);
       }
       p = c;
     }
   }
-  if (!p.empty()) result.pushInt(dict[p], code_len);
+  if (!p.empty()) result.pushInt(dict[p], 12);
 
   return result.getData();
 }
 
-std::vector<char> Lzw::decompress(const std::vector<char>& bytes) {
+std::vector<char> BasicDecompressor::decompress(
+    const std::vector<char>& bytes) {
   BitArray input_stream(bytes);
-  BitArray result;
 
-  std::map<int, BitArray> dict;
-  std::map<int, BitArray>::iterator iter;
-  for (int i = 0; i < dict_size_; ++i) {
-    dict[i] = BitArray(i, part_len_);
+  std::string result;
+
+  std::map<int, std::string> dict;
+  std::map<int, std::string>::iterator iter;
+  for (int i = 0; i < (1 << 8); ++i) {
+    dict[dict.size()] = std::string(1, i);
   }
 
   int code;
-  int code_len = part_len_ + 1;
-  int code_index = dict_size_;
 
-  BitArray old_bits, new_bits;
+  std::string old_bits, new_bits;
 
-  code = input_stream.popFrontInt(code_len);
+  code = input_stream.popFrontInt(12);
   if (input_stream.bitsToRead() >= 0) {
     old_bits = dict[code];
     result += old_bits;
   }
 
-  while (input_stream.bitsToRead() >= code_len) {
-    code = input_stream.popFrontInt(code_len);
+  while (input_stream.bitsToRead() >= 12) {
+    code = input_stream.popFrontInt(12);
 
-    if (code == sig_clear_) {
+    if (code == 4095) {
       dict.clear();
-      for (int i = 0; i < dict_size_; i++) {
-        dict[i] = BitArray(i, part_len_);
+      for (int i = 0; i < (1 << 8); i++) {
+        dict[dict.size()] = std::string(1, i);
       }
       old_bits.clear();
       new_bits.clear();
-      code_len = part_len_ + 1;
-      code_index = dict_size_;
-      code = input_stream.popFrontInt(code_len);
-      if (input_stream.bitsToRead() >= code_len) {
+      code = input_stream.popFrontInt(12);
+      if (input_stream.bitsToRead() >= 12) {
         old_bits = dict[code];
         result += old_bits;
       }
       continue;
     }
 
-    while (code == (1 << code_len) - 1 && code_len <= max_code_len_ &&
-           input_stream.bitsToRead() >= code_len) {
-      code_len++;
-      code = input_stream.popFrontInt(code_len);
-    }
-
     if ((iter = dict.find(code)) != dict.end()) {
       new_bits = iter->second;
-      dict[code_index++] = old_bits + new_bits.popFront(part_len_);
+      dict[dict.size()] = old_bits + new_bits[0];
     } else {
-      BitArray tmp = old_bits;
-      tmp.setCursor(0);
-      new_bits = old_bits + tmp.popFront(part_len_);
-      dict[code_index++] = new_bits;
+      new_bits = old_bits + old_bits[0];
+      dict[dict.size()] = new_bits;
     }
 
     result += new_bits;
     old_bits = new_bits;
   }
 
+  return std::vector<char>(result.begin(), result.end());
+}
+
+VariableLengthCompressor::VariableLengthCompressor(int codeLength)
+    : maxCodeLength_(codeLength), sigClear_((1 << maxCodeLength_) - 1) {}
+
+std::vector<char> VariableLengthCompressor::compress(
+    const std::vector<char>& bytes) {
+  BitArray result;
+
+  std::map<std::string, int> dict;
+  for (int i = 0; i < (1 << 8); i++) {
+    dict[std::string(1, i)] = dict.size();
+  }
+
+  int codeLength = 9;
+
+  std::string p;
+
+  for (int i = 0; i < bytes.size(); ++i) {
+    std::string c;
+    c += bytes[i];
+    if (dict.find(p + c) != dict.end()) {
+      p += c;
+    } else {
+      int code = dict[p];
+      while (code >= (1 << codeLength) - 1 && codeLength <= maxCodeLength_) {
+        result.pushInt((1 << codeLength) - 1, codeLength);
+        codeLength++;
+      }
+      result.pushInt(code, codeLength);
+      dict[p + c] = dict.size();
+      if (dict.size() >= sigClear_) {
+        dict.clear();
+        for (int i = 0; i < (1 << 8); i++) {
+          dict[std::string(1, i)] = dict.size();
+        }
+        result.pushInt(sigClear_, maxCodeLength_);
+
+        codeLength = 9;
+      }
+      p = c;
+    }
+  }
+  if (!p.empty()) result.pushInt(dict[p], codeLength);
+
   return result.getData();
 }
 
-}  // namespace detail
+VariableLengthDecompressor::VariableLengthDecompressor(int codeLength)
+    : maxCodeLength_(codeLength), sigClear_((1 << maxCodeLength_) - 1) {}
 
-void compress(const std::string& file_name, const std::string& output_name,
-              int part_len, int code_len) {
-  std::string input_path = file_name;
-  std::ifstream f(input_path);
+std::vector<char> VariableLengthDecompressor::decompress(
+    const std::vector<char>& bytes) {
+  BitArray input_stream(bytes);
+  std::string result;
+
+  std::map<int, std::string> dict;
+  std::map<int, std::string>::iterator iter;
+  for (int i = 0; i < (1 << 8); ++i) {
+    dict[dict.size()] = std::string(1, i);
+  }
+
+  int code;
+  int codeLength = 9;
+
+  std::string old_bits, new_bits;
+
+  code = input_stream.popFrontInt(codeLength);
+  if (input_stream.bitsToRead() >= 0) {
+    old_bits = dict[code];
+    result += old_bits;
+  }
+
+  while (input_stream.bitsToRead() >= codeLength) {
+    code = input_stream.popFrontInt(codeLength);
+
+    if (code == sigClear_) {
+      dict.clear();
+      for (int i = 0; i < (1 << 8); i++) {
+        dict[dict.size()] = std::string(1, i);
+      }
+      old_bits.clear();
+      new_bits.clear();
+      codeLength = 9;
+      code = input_stream.popFrontInt(codeLength);
+      if (input_stream.bitsToRead() >= codeLength) {
+        old_bits = dict[code];
+        result += old_bits;
+      }
+      continue;
+    }
+
+    while (code == (1 << codeLength) - 1 && codeLength <= maxCodeLength_ &&
+           input_stream.bitsToRead() >= codeLength) {
+      codeLength++;
+      code = input_stream.popFrontInt(codeLength);
+    }
+
+    if ((iter = dict.find(code)) != dict.end()) {
+      new_bits = iter->second;
+      dict[dict.size()] = old_bits + new_bits[0];
+    } else {
+      new_bits = old_bits + old_bits[0];
+      dict[dict.size()] = new_bits;
+    }
+
+    result += new_bits;
+    old_bits = new_bits;
+  }
+
+  return std::vector<char>(result.begin(), result.end());
+}
+
+SafeVariableLengthCompressor::SafeVariableLengthCompressor(int salt,
+                                                           int codeLength)
+    : salt_(salt),
+      maxCodeLength_(codeLength),
+      sigClear_((1 << maxCodeLength_) - 1) {}
+
+std::vector<char> SafeVariableLengthCompressor::compress(
+    const std::vector<char>& bytes) {
+  RandomGenerator generator(salt_, maxCodeLength_);
+  BitArray result;
+
+  std::map<std::string, int> dict;
+  for (int i = 0; i < (1 << 8); i++) {
+    dict[std::string(1, i)] = generator.get();
+  }
+
+  int codeLength = 9;
+
+  std::string p;
+
+  for (int i = 0; i < bytes.size(); ++i) {
+    std::string c;
+    c += bytes[i];
+    if (dict.find(p + c) != dict.end()) {
+      p += c;
+    } else {
+      int code = dict[p];
+      while (code >= (1 << codeLength) - 1 && codeLength <= maxCodeLength_) {
+        result.pushInt((1 << codeLength) - 1, codeLength);
+        codeLength++;
+      }
+      result.pushInt(code, codeLength);
+      dict[p + c] = generator.get();
+      if (dict.size() >= sigClear_) {
+        dict.clear();
+        generator.reset();
+        for (int i = 0; i < (1 << 8); i++) {
+          dict[std::string(1, i)] = generator.get();
+        }
+        result.pushInt(sigClear_, maxCodeLength_);
+
+        codeLength = 9;
+      }
+      p = c;
+    }
+  }
+  if (!p.empty()) result.pushInt(dict[p], codeLength);
+
+  return result.getData();
+}
+
+SafeVariableLengthDecompressor::SafeVariableLengthDecompressor(int salt,
+                                                               int codeLength)
+    : salt_(salt),
+      maxCodeLength_(codeLength),
+      sigClear_((1 << maxCodeLength_) - 1) {}
+
+std::vector<char> SafeVariableLengthDecompressor::decompress(
+    const std::vector<char>& bytes) {
+  BitArray input_stream(bytes);
+  RandomGenerator generator(salt_, maxCodeLength_);
+  std::string result;
+
+  std::map<int, std::string> dict;
+  std::map<int, std::string>::iterator iter;
+  for (int i = 0; i < (1 << 8); ++i) {
+    dict[generator.get()] = std::string(1, i);
+  }
+
+  int code;
+  int codeLength = 9;
+
+  std::string old_bits, new_bits;
+
+  code = input_stream.popFrontInt(codeLength);
+  if (input_stream.bitsToRead() >= 0) {
+    old_bits = dict[code];
+    result += old_bits;
+  }
+
+  while (input_stream.bitsToRead() >= codeLength) {
+    code = input_stream.popFrontInt(codeLength);
+
+    if (code == sigClear_) {
+      dict.clear();
+      generator.reset();
+      for (int i = 0; i < (1 << 8); i++) {
+        dict[generator.get()] = std::string(1, i);
+      }
+      old_bits.clear();
+      new_bits.clear();
+      codeLength = 9;
+      code = input_stream.popFrontInt(codeLength);
+      if (input_stream.bitsToRead() >= codeLength) {
+        old_bits = dict[code];
+        result += old_bits;
+      }
+      continue;
+    }
+
+    while (code == (1 << codeLength) - 1 && codeLength <= maxCodeLength_ &&
+           input_stream.bitsToRead() >= codeLength) {
+      codeLength++;
+      code = input_stream.popFrontInt(codeLength);
+    }
+
+    if ((iter = dict.find(code)) != dict.end()) {
+      new_bits = iter->second;
+      dict[generator.get()] = old_bits + new_bits[0];
+    } else {
+      new_bits = old_bits + old_bits[0];
+      dict[generator.get()] = new_bits;
+    }
+
+    result += new_bits;
+    old_bits = new_bits;
+  }
+
+  return std::vector<char>(result.begin(), result.end());
+}
+
+void compress(Compressor* compressor, const std::string& fileName,
+              const std::string& outputName) {
+  std::ifstream f(fileName);
   if (f.fail()) {
-    std::cout << "error to open '" << file_name << "'!!!" << std::endl;
+    std::cout << "error to open '" << fileName << "'!!!" << std::endl;
     return;
   }
 
@@ -141,19 +341,18 @@ void compress(const std::string& file_name, const std::string& output_name,
                            std::istreambuf_iterator<char>());
   f.close();
 
-  detail::Lzw lzw(part_len, code_len);
-  std::vector<char> result = lzw.compress(buffer);
+  std::vector<char> result = compressor->compress(buffer);
 
-  std::ofstream out(output_name);
+  std::ofstream out((outputName == "") ? (fileName + ".lzw") : outputName);
   out.write(result.data(), result.size());
   out.close();
 }
 
-void decompress(const std::string& file_name) {
-  std::string input_path = file_name;
-  std::ifstream f(input_path);
+void decompress(Decompressor* decompressor, const std::string& fileName,
+                const std::string& outputName) {
+  std::ifstream f(fileName);
   if (f.fail()) {
-    std::cout << "error to open '" << file_name << "'!!!" << std::endl;
+    std::cout << "error to open '" << fileName << "'!!!" << std::endl;
     return;
   }
 
@@ -161,17 +360,9 @@ void decompress(const std::string& file_name) {
                            std::istreambuf_iterator<char>());
   f.close();
 
-  int part_len = static_cast<int>(buffer[0]);
-  int code_len = static_cast<int>(buffer[1]);
-  buffer.erase(buffer.begin());
-  buffer.erase(buffer.begin());
+  std::vector<char> result = decompressor->decompress(buffer);
 
-  detail::Lzw lzw(part_len, code_len);
-  std::vector<char> result = lzw.decompress(buffer);
-
-  std::string output_path = input_path + ".raw";
-
-  std::ofstream out(output_path);
+  std::ofstream out((outputName == "") ? (fileName + ".raw") : outputName);
   out.write(result.data(), result.size());
   out.close();
 }

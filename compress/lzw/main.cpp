@@ -16,10 +16,10 @@ int main(int argc, char const *argv[]) {
       // compress
       std::string file_name(argv[2], strlen(argv[2]));
       std::string output_name = file_name + ".lzw";
-      lzw::compress(file_name, output_name);
+      lzw::compress(new lzw::VariableLengthCompressor, file_name, output_name);
     } else if (strcmp(argv[1], "-d") == 0) {
       // decompress
-      lzw::decompress(argv[2]);
+      lzw::decompress(new lzw::VariableLengthDecompressor, argv[2]);
     } else {
       printHelp();
     }

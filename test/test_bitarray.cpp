@@ -4,7 +4,7 @@
 #include "lzw/lzw.h"
 #include "test.h"
 
-using namespace lzw::detail;
+using namespace lzw;
 
 TEST(BitArray, Constructor) {
   BitArray bits1;
